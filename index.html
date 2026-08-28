@@ -1,0 +1,534 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вишлист</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=PT+Mono&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --board:#1E2A24;
+    --board-deep:#161F1A;
+    --paper:#EFE9DB;
+    --paper-edge:#DCD3BF;
+    --ink:#141B17;
+    --muted:#6E7B73;
+    --cherry:#C8172B;
+    --bone:#C9B189;
+    --sage:#8FA88C;
+    --lilac:#9A93BE;
+    --amber:#D9A441;
+    --display:"Unbounded","Golos Text",system-ui,sans-serif;
+    --body:"Golos Text",system-ui,-apple-system,sans-serif;
+    --mono:"PT Mono",ui-monospace,monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    padding:0 0 96px;
+    font-family:var(--body);
+    color:var(--paper);
+    background-color:var(--board);
+    background-image:
+      linear-gradient(rgba(201,177,137,.055) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(201,177,137,.055) 1px,transparent 1px),
+      radial-gradient(120% 80% at 50% 0%,rgba(201,177,137,.10),transparent 60%);
+    background-size:26px 26px,26px 26px,100% 100%;
+  }
+
+  .wrap{max-width:940px;margin:0 auto;padding:0 20px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:64px 0 40px;text-align:center;position:relative}
+  .antlers{width:min(340px,72vw);color:var(--bone);display:block;margin:0 auto -14px;opacity:.9}
+  .hero h1{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(46px,13vw,104px);
+    letter-spacing:.04em;line-height:.92;margin:0;
+    color:var(--paper);
+  }
+  .hero .lede{
+    max-width:44ch;margin:22px auto 0;
+    font-size:16px;line-height:1.6;color:#C8D0C9;
+  }
+  .hero .lede b{color:var(--paper);font-weight:600}
+  .meta{
+    margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+    font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .meta span{
+    border:1px solid rgba(201,177,137,.35);border-radius:999px;
+    padding:7px 14px;color:var(--bone);
+  }
+  .meta .warn{border-style:dashed;color:#B9A98D}
+
+  .rule{height:1px;background:linear-gradient(90deg,transparent,rgba(201,177,137,.4),transparent);margin:8px 0 0}
+
+  /* ---------- tiers ---------- */
+  .tier{margin-top:64px}
+  .tier__head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .tier__rank{
+    font-family:var(--display);font-weight:700;font-size:34px;line-height:1;
+    color:transparent;-webkit-text-stroke:1.4px var(--tape,var(--bone));
+    letter-spacing:.02em;
+  }
+  .tier__title{font-family:var(--display);font-weight:500;font-size:22px;margin:0;letter-spacing:.01em}
+  .tier__note{margin:2px 0 24px;color:#A9B4AC;font-size:15px;line-height:1.55;max-width:58ch}
+
+  /* ---------- cards ---------- */
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(288px,1fr))}
+  .card{
+    position:relative;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:3px;
+    padding:26px 22px 18px;
+    box-shadow:0 12px 26px rgba(0,0,0,.28);
+    display:flex;flex-direction:column;
+    transform:rotate(var(--tilt,0deg));
+    transition:transform .25s ease,box-shadow .25s ease;
+  }
+  .card:hover{transform:rotate(0deg) translateY(-3px);box-shadow:0 18px 34px rgba(0,0,0,.34)}
+  .card::after{content:"";position:absolute;inset:0;border:1px solid var(--paper-edge);border-radius:3px;pointer-events:none}
+  .card .tape{
+    position:absolute;top:-11px;left:22px;width:78px;height:22px;
+    background:var(--tape,var(--bone));opacity:.72;
+    transform:rotate(-3.5deg);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  .card .tape::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.28) 0 2px,transparent 2px 6px);
+  }
+  .card__kind{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);display:block;margin-bottom:8px;
+  }
+  .card__title{font-family:var(--display);font-weight:500;font-size:17px;line-height:1.3;margin:0 0 10px}
+  .card__desc{margin:0 0 16px;font-size:14.5px;line-height:1.55;color:#3A443E}
+  .card__links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:16px}
+  .card__links a{
+    font-family:var(--mono);font-size:12px;letter-spacing:.03em;
+    color:var(--cherry);text-decoration:none;border-bottom:1px solid rgba(200,23,43,.35);
+    padding-bottom:1px;
+  }
+  .card__links a:hover{border-bottom-color:var(--cherry)}
+
+  .book{margin-top:auto;padding-top:14px;border-top:1px dashed var(--paper-edge)}
+  .book form{display:flex;gap:8px}
+  .book input{
+    flex:1;min-width:0;font-family:var(--body);font-size:14px;
+    padding:9px 11px;border:1px solid var(--paper-edge);border-radius:2px;
+    background:#F8F5EC;color:var(--ink);
+  }
+  .book input:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:transparent}
+  .book button{
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    padding:9px 14px;border:0;border-radius:2px;cursor:pointer;
+    background:var(--ink);color:var(--paper);
+  }
+  .book button:hover{background:var(--cherry)}
+  .book button:focus-visible,.card__links a:focus-visible,.linkbtn:focus-visible{outline:2px solid var(--cherry);outline-offset:2px}
+
+  .taken{display:flex;align-items:center;gap:12px;justify-content:space-between}
+  .stamp{
+    font-family:var(--mono);font-size:12px;line-height:1.35;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--cherry);border:1.5px solid var(--cherry);border-radius:2px;
+    padding:6px 10px;transform:rotate(-2deg);
+  }
+  .stamp b{display:block;font-size:14px;letter-spacing:.02em;text-transform:none}
+  .linkbtn{
+    background:none;border:0;padding:0;cursor:pointer;
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    text-decoration:underline;text-underline-offset:3px;white-space:nowrap;
+  }
+  .linkbtn:hover{color:var(--ink)}
+  .card.is-taken{background:#E6E1D3}
+  .card.is-taken .card__title,.card.is-taken .card__desc{opacity:.6}
+
+  /* ---------- footer ---------- */
+  .foot{margin-top:72px;text-align:center;color:#96A29A;font-size:14px;line-height:1.6}
+  .foot .sig{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone);margin-bottom:10px}
+
+  .status{
+    font-family:var(--mono);font-size:12px;color:#B9A98D;text-align:center;
+    margin-top:18px;min-height:16px;
+  }
+
+  /* ---------- motion ---------- */
+  .reveal{opacity:0;transform:translateY(14px)}
+  .reveal.in{opacity:1;transform:none;transition:opacity .5s ease,transform .5s ease}
+  @media (prefers-reduced-motion:reduce){
+    .reveal,.reveal.in{opacity:1;transform:none;transition:none}
+    .card,.card:hover{transition:none;transform:none}
+  }
+  @media (max-width:520px){
+    .hero{padding-top:40px}
+    .card{transform:none}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <svg class="antlers" viewBox="0 0 200 96" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g>
+          <path d="M100 92 C 97 76, 90 64, 76 54 C 65 46, 56 35, 53 20"/>
+          <path d="M90 64 C 79 62, 69 56, 61 47"/>
+          <path d="M80 57 C 74 46, 72 34, 74 23"/>
+          <path d="M66 44 C 55 41, 44 39, 33 40"/>
+          <path d="M58 30 C 49 26, 40 24, 30 25"/>
+        </g>
+        <g transform="translate(200,0) scale(-1,1)">
+          <path d="M100 92 C 97 76, 90 64, 76 54 C 65 46, 56 35, 53 20"/>
+          <path d="M90 64 C 79 62, 69 56, 61 47"/>
+          <path d="M80 57 C 74 46, 72 34, 74 23"/>
+          <path d="M66 44 C 55 41, 44 39, 33 40"/>
+          <path d="M58 30 C 49 26, 40 24, 30 25"/>
+        </g>
+      </g>
+    </svg>
+    <h1>ВИШЛИСТ</h1>
+    <p class="lede">Список идёт сверху вниз — от того, что хочу сильнее всего, к тому, чему просто буду рада. <b>Выбирайте что понравилось, впишите своё имя и нажмите «Забронировать»</b> — чтобы двое не принесли одно и то же.</p>
+    <div class="meta">
+      <span id="counter">Забронировано 0 из 0</span>
+      <span class="warn">Имена видны всем, кто открыл список</span>
+    </div>
+    <div class="rule"></div>
+  </header>
+
+  <main id="tiers"></main>
+
+  <p class="status" id="status"></p>
+
+  <footer class="foot">
+    <div class="sig">и ещё</div>
+    <p>Раскрасок тут много специально: я не хочу знать, какая приедет.<br>Если ничего не подошло — рога всегда подойдут.</p>
+  </footer>
+</div>
+
+<script>
+const TIERS = [
+  {
+    rank: "01",
+    title: "Рога",
+    note: "Хочу больше всего. Если сомневаетесь между пунктами — берите этот.",
+    tape: "var(--bone)",
+    items: [{
+      id: "antlers",
+      kind: "интерьер",
+      title: "Рога — оленя, косули или лося",
+      desc: "Любые: с черепом, на деревянной подставке или просто один рог. Настоящие лучше пластиковых. На Авито их полно, от 1000 ₽ до 3–4 тысяч.",
+      links: [{ label: "Поиск на Авито ↗", url: "https://www.avito.ru/all?q=%D1%80%D0%BE%D0%B3%D0%B0+%D0%BE%D0%BB%D0%B5%D0%BD%D1%8F" }]
+    }]
+  },
+  {
+    rank: "02",
+    title: "Ручки",
+    note: "Сразу после рогов. Ими же раскрашивается раскраска по Гравити Фолз — можно подарить в паре.",
+    tape: "var(--cherry)",
+    items: [{
+      id: "pens",
+      kind: "канцелярия",
+      title: "Набор ручек Languo, 168 шт",
+      desc: "Толщина линии 0,6 мм, разноцветные.",
+      links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/languo-nabor-ruchek-tolshchina-linii-0-6-mm-tsvet-raznotsvetnyy-168-sht-5529448981/" }]
+    }]
+  },
+  {
+    rank: "03",
+    title: "Скрапбукинг и кольцо",
+    note: "Третье по силе желания. Ленты — любые в эту сторону, не обязательно именно эти.",
+    tape: "var(--sage)",
+    items: [
+      {
+        id: "tape-stars",
+        kind: "PET-лента",
+        title: "«Девушка под звёздным небом»",
+        desc: "Матовая PET, 2 м. И вообще любые похожие ленты: лес, ночь, растения, звёзды.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/dekorativnyy-skotch-dlya-skrapbukinga-devushka-pod-zvezdnym-nebom-matovyy-pet-dlina-2-m-3649220288/" }]
+      },
+      {
+        id: "tape-set",
+        kind: "PET-лента",
+        title: "Набор клейких лент, 45 мм × 2 м, 6 шт",
+        desc: "Пример набора, который точно подойдёт. Аналогичные — тоже отлично.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/kleykaya-lenta-kantselyarskaya-45-mm-x-2-m-6-sht-1716526187/" }]
+      },
+      {
+        id: "ring-zima",
+        kind: "украшение",
+        title: "Кольцо Zima Jewelry",
+        desc: "Нравятся серии «Забор» (по-2), «Сталинка», «Хрущёвка» и «Послание».",
+        links: [{ label: "zimajewelry.ru ↗", url: "https://zimajewelry.ru/kolca" }]
+      }
+    ]
+  },
+  {
+    rank: "04",
+    title: "Раскраски по номерам",
+    note: "Выбор большой намеренно — берите любую, мне будет интереснее.",
+    tape: "var(--lilac)",
+    items: [
+      {
+        id: "col-gravity",
+        kind: "раскраска",
+        title: "Приоткрой мир Гравити Фолз",
+        desc: "Лучше всего вместе с ручками из пункта 02 — без них её толком не раскрасить.",
+        links: [
+          { label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-priotkroy-mir-graviti-folz-4812638595/" },
+          { label: "+ ручки ↗", url: "https://www.ozon.ru/product/languo-nabor-ruchek-tolshchina-linii-0-6-mm-tsvet-raznotsvetnyy-168-sht-5529448981/" }
+        ]
+      },
+      {
+        id: "col-housewives",
+        kind: "раскраска",
+        title: "МИЛOSTORY — Отчаянные домохозяйки",
+        desc: "30 иллюстраций, упакована как подарок.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-milostory-otchayannye-domohozyayki-5233094549/" }]
+      },
+      {
+        id: "col-got",
+        kind: "раскраска",
+        title: "Игра престолов",
+        desc: "",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-igra-prestolov-5316057763/" }]
+      },
+      {
+        id: "col-miyazaki",
+        kind: "раскраска",
+        title: "Manzzuro Pro vol. 2 — Миядзаки",
+        desc: "",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-manzzuro-pro-vol2-miyadzaki-3635171484/" }]
+      },
+      {
+        id: "col-garden",
+        kind: "раскраска",
+        title: "Coloriages Mystères — Волшебный сад",
+        desc: "Мягкая обложка, 64 страницы.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-coloriages-mysteres-jardin-magique-volshebnyy-sad-v-myagkoy-oblozhke-64-4115739557/" }]
+      },
+      {
+        id: "col-safari",
+        kind: "раскраска",
+        title: "Color by Number — Сафари",
+        desc: "Для взрослых.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-dlya-vzroslyh-color-by-number-safari-safari-3436893639/" }]
+      },
+      {
+        id: "col-disney",
+        kind: "раскраска",
+        title: "Disney — Деревья мира",
+        desc: "",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-disney-derevya-mira-5203161049/" }]
+      },
+      {
+        id: "col-mandala",
+        kind: "раскраска",
+        title: "Hachette — Мандалы",
+        desc: "Из серии Coloriages Mystères.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/raskraska-po-nomeram-hachette-coloriages-mysteres-mandaly-ot-ashet-3595931529/" }]
+      }
+    ]
+  },
+  {
+    rank: "05",
+    title: "Тоже хочу",
+    note: "Не по остаточному принципу — просто из других категорий.",
+    tape: "var(--amber)",
+    items: [
+      {
+        id: "diary",
+        kind: "дневник",
+        title: "Один вопрос в день — дневник на три года",
+        desc: "Цвет «кораллы». Он же пятибук.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/odin-vopros-v-den-dlya-obreteniya-spokoystviya-dnevnik-na-tri-goda-korally-1589173443/" }]
+      },
+      {
+        id: "shadows",
+        kind: "косметика",
+        title: "ShellWe Makeup × Freya86 — Punk Bunny",
+        desc: "Палетка теней, full size.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/shellwe-makeup-x-freya86-full-size-punk-bunny-palitra-teney-dlya-vek-ofitsialnaya-odezhda-2438578986/" }]
+      },
+      {
+        id: "mascara-blue",
+        kind: "косметика",
+        title: "B.Colour Professional — синяя тушь",
+        desc: "Термотушь Capsule, оттенок 08 Electric Blue.",
+        links: [{ label: "Ozon ↗", url: "https://www.ozon.ru/product/b-colour-professional-tush-dlya-resnits-sinyaya-termotush-capsule-08-electric-blue-2142742631/" }]
+      }
+    ]
+  }
+];
+
+/* ─────────── НАСТРОЙКА ───────────
+   Вставьте сюда ссылку веб-приложения из Apps Script.
+   Она заканчивается на /exec                        */
+const API_URL = "СЮДА_ВСТАВИТЬ_ССЫЛКУ";
+/* ────────────────────────────────── */
+
+let reservations = {};
+let busy = false;
+const connected = () => API_URL.indexOf("script.google.com") !== -1;
+
+async function api(action, payload) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const setStatus = t => { document.getElementById("status").textContent = t; };
+
+function build() {
+  const root = document.getElementById("tiers");
+  let n = 0;
+  root.innerHTML = TIERS.map(t => `
+    <section class="tier reveal" style="--tape:${t.tape}">
+      <div class="tier__head">
+        <span class="tier__rank">${t.rank}</span>
+        <h2 class="tier__title">${esc(t.title)}</h2>
+      </div>
+      <p class="tier__note">${esc(t.note)}</p>
+      <div class="grid">
+        ${t.items.map(it => {
+          const tilt = ((n++ % 3) - 1) * 0.4;
+          return `
+          <article class="card" data-id="${it.id}" style="--tilt:${tilt}deg">
+            <span class="tape"></span>
+            <span class="card__kind">${esc(it.kind)}</span>
+            <h3 class="card__title">${esc(it.title)}</h3>
+            ${it.desc ? `<p class="card__desc">${esc(it.desc)}</p>` : `<p class="card__desc"></p>`}
+            <div class="card__links">
+              ${it.links.map(l => `<a href="${l.url}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a>`).join("")}
+            </div>
+            <div class="book" data-book="${it.id}"></div>
+          </article>`;
+        }).join("")}
+      </div>
+    </section>`).join("");
+  paintAll();
+  observe();
+}
+
+function paintAll() {
+  document.querySelectorAll("[data-book]").forEach(el => paint(el.dataset.book));
+  const total = TIERS.reduce((a, t) => a + t.items.length, 0);
+  const taken = Object.keys(reservations).length;
+  document.getElementById("counter").textContent = `Забронировано ${taken} из ${total}`;
+}
+
+function paint(id) {
+  const box = document.querySelector(`[data-book="${id}"]`);
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!box) return;
+  const r = reservations[id];
+  card.classList.toggle("is-taken", !!r);
+  if (r) {
+    box.innerHTML = `
+      <div class="taken">
+        <span class="stamp">Забронировано<b>${esc(r)}</b></span>
+        <button class="linkbtn" data-cancel="${id}">снять бронь</button>
+      </div>`;
+    box.querySelector("[data-cancel]").onclick = () => cancel(id);
+  } else {
+    box.innerHTML = `
+      <form data-form="${id}">
+        <input name="who" placeholder="Ваше имя" maxlength="40" autocomplete="off" aria-label="Ваше имя">
+        <button type="submit">Забронировать</button>
+      </form>`;
+    const form = box.querySelector("form");
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const field = form.querySelector("input");
+      const btn = form.querySelector("button");
+      const v = field.value.trim();
+      if (!v) { field.focus(); return; }
+      btn.disabled = true;
+      btn.textContent = "…";
+      await reserve(id, v);
+    };
+  }
+}
+
+async function reserve(id, name) {
+  if (!connected()) { reservations[id] = name; paintAll(); setStatus(OFFLINE); return; }
+  if (busy) return;
+  busy = true; setStatus("Бронирую…");
+  try {
+    const d = await api("reserve", { id: id, name: name });
+    reservations = d.reservations || reservations;
+    paintAll();
+    setStatus(d.taken && d.taken !== name
+      ? "Этот подарок только что забронировал кто-то другой."
+      : "Готово, бронь сохранена.");
+  } catch (e) {
+    paintAll();
+    setStatus("Не получилось сохранить бронь. Проверьте интернет и попробуйте ещё раз.");
+  }
+  busy = false;
+}
+
+async function cancel(id) {
+  if (!connected()) { delete reservations[id]; paintAll(); setStatus(OFFLINE); return; }
+  if (busy) return;
+  busy = true; setStatus("Снимаю бронь…");
+  try {
+    const d = await api("cancel", { id: id });
+    reservations = d.reservations || reservations;
+    paintAll();
+    setStatus("Бронь снята.");
+  } catch (e) {
+    setStatus("Не получилось снять бронь. Попробуйте ещё раз.");
+  }
+  busy = false;
+}
+
+async function sync() {
+  if (!connected()) return;
+  const d = await api("list");
+  reservations = d.reservations || {};
+}
+
+function observe() {
+  const els = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) { els.forEach(e => e.classList.add("in")); return; }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
+  }, { rootMargin: "0px 0px -40px 0px" });
+  els.forEach(e => io.observe(e));
+}
+
+const OFFLINE = "Таблица не подключена — брони живут только в этой вкладке.";
+
+(async () => {
+  build();
+  if (!connected()) { setStatus(OFFLINE); return; }
+  setStatus("Загружаю брони…");
+  try {
+    await sync();
+    paintAll();
+    setStatus("");
+  } catch (e) {
+    setStatus("Брони не загрузились. Обновите страницу.");
+  }
+})();
+
+async function refresh() {
+  if (!connected() || busy || document.hidden) return;
+  try { await sync(); paintAll(); } catch (e) { /* сеть моргнула — попробуем позже */ }
+}
+
+setInterval(refresh, 25000);
+document.addEventListener("visibilitychange", refresh);
+</script>
