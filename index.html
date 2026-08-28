@@ -147,10 +147,13 @@
   .linkbtn:hover{color:var(--ink)}
   .card.is-taken{background:#E6E1D3}
   .card.is-taken .card__title,.card.is-taken .card__desc{opacity:.6}
+  .hint{font-family:var(--mono);font-size:10.5px;line-height:1.3;color:var(--muted);text-align:right}
 
   /* ---------- footer ---------- */
   .foot{margin-top:72px;text-align:center;color:#96A29A;font-size:14px;line-height:1.6}
   .foot .sig{font-family:var(--display);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone);margin-bottom:10px}
+  .foot .linkbtn{color:#6F7C74;font-size:11px;margin-top:6px}
+  .foot .linkbtn:hover{color:var(--bone)}
 
   .status{
     font-family:var(--mono);font-size:12px;color:#B9A98D;text-align:center;
@@ -207,6 +210,7 @@
   <footer class="foot">
     <div class="sig">и ещё</div>
     <p>Раскрасок тут много специально: я не хочу знать, какая приедет.<br>Если ничего не подошло — рога всегда подойдут.</p>
+    <p><button class="linkbtn" id="ownerBtn">я хозяйка списка</button></p>
   </footer>
 </div>
 
@@ -371,6 +375,30 @@ const TIERS = [
 const API_URL = "https://script.google.com/macros/s/AKfycbyBFTxk_dESQXTTXXz6jqAZel1MbqX9xqhZX4_9x82Cns1x7klp0h3YSecP7Uf0GBDA/exec";
 /* ────────────────────────────────── */
 
+function rnd() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/* метка браузера: по ней человек снимает только свою бронь */
+function stored(key, make) {
+  try {
+    let v = localStorage.getItem(key);
+    if (!v && make) { v = make(); localStorage.setItem(key, v); }
+    return v;
+  } catch (e) {
+    if (!window.__mem) window.__mem = {};
+    if (!window.__mem[key] && make) window.__mem[key] = make();
+    return window.__mem[key] || null;
+  }
+}
+function forget(key) {
+  try { localStorage.removeItem(key); } catch (e) { if (window.__mem) delete window.__mem[key]; }
+}
+
+const TOKEN = stored("wishlist-token", rnd);
+let ownerCode = stored("wishlist-owner") || "";
+let isOwner = false;
+
 let reservations = {};
 let busy = false;
 const connected = () => API_URL.indexOf("script.google.com") !== -1;
@@ -379,7 +407,7 @@ async function api(action, payload) {
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    body: JSON.stringify(Object.assign({ action: action, token: TOKEN, code: ownerCode }, payload || {}))
   });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
@@ -437,10 +465,12 @@ function paint(id) {
   if (r) {
     box.innerHTML = `
       <div class="taken">
-        <span class="stamp">Забронировано<b>${esc(r)}</b></span>
-        <button class="linkbtn" data-cancel="${id}">снять бронь</button>
+        <span class="stamp">Забронировано<b>${esc(r.name)}</b></span>
+        ${r.mine
+          ? `<button class="linkbtn" data-cancel="${id}">снять бронь</button>`
+          : `<span class="hint">снимает тот,<br>кто бронировал</span>`}
       </div>`;
-    box.querySelector("[data-cancel]").onclick = () => cancel(id);
+    if (r.mine) box.querySelector("[data-cancel]").onclick = () => cancel(id);
   } else {
     box.innerHTML = `
       <form data-form="${id}">
@@ -462,13 +492,12 @@ function paint(id) {
 }
 
 async function reserve(id, name) {
-  if (!connected()) { reservations[id] = name; paintAll(); setStatus(OFFLINE); return; }
+  if (!connected()) { reservations[id] = { name: name, mine: true }; paintAll(); setStatus(OFFLINE); return; }
   if (busy) return;
   busy = true; setStatus("Бронирую…");
   try {
     const d = await api("reserve", { id: id, name: name });
-    reservations = d.reservations || reservations;
-    paintAll();
+    apply(d);
     setStatus(d.taken && d.taken !== name
       ? "Этот подарок только что забронировал кто-то другой."
       : "Готово, бронь сохранена.");
@@ -485,19 +514,31 @@ async function cancel(id) {
   busy = true; setStatus("Снимаю бронь…");
   try {
     const d = await api("cancel", { id: id });
-    reservations = d.reservations || reservations;
-    paintAll();
-    setStatus("Бронь снята.");
+    apply(d);
+    setStatus(d.denied
+      ? "Эту бронь ставили не с этого устройства — снять её нельзя."
+      : "Бронь снята.");
   } catch (e) {
     setStatus("Не получилось снять бронь. Попробуйте ещё раз.");
   }
   busy = false;
 }
 
+function apply(d) {
+  if (d.reservations) reservations = d.reservations;
+  isOwner = !!d.owner;
+  paintAll();
+  const btn = document.getElementById("ownerBtn");
+  if (btn) btn.textContent = isOwner ? "выйти из режима хозяйки" : "я хозяйка списка";
+}
+
 async function sync() {
   if (!connected()) return;
   const d = await api("list");
   reservations = d.reservations || {};
+  isOwner = !!d.owner;
+  const btn = document.getElementById("ownerBtn");
+  if (btn) btn.textContent = isOwner ? "выйти из режима хозяйки" : "я хозяйка списка";
 }
 
 function observe() {
@@ -531,4 +572,36 @@ async function refresh() {
 
 setInterval(refresh, 25000);
 document.addEventListener("visibilitychange", refresh);
+
+document.getElementById("ownerBtn").onclick = async () => {
+  if (isOwner) {
+    ownerCode = "";
+    forget("wishlist-owner");
+    isOwner = false;
+    try { await sync(); } catch (e) {}
+    paintAll();
+    setStatus("Режим хозяйки выключен.");
+    document.getElementById("ownerBtn").textContent = "я хозяйка списка";
+    return;
+  }
+  const code = prompt("Кодовое слово хозяйки списка:");
+  if (!code) return;
+  ownerCode = code.trim();
+  setStatus("Проверяю…");
+  try {
+    await sync();
+    paintAll();
+    if (isOwner) {
+      stored("wishlist-owner", () => ownerCode);
+      try { localStorage.setItem("wishlist-owner", ownerCode); } catch (e) {}
+      setStatus("Режим хозяйки включён — можно снимать любые брони.");
+    } else {
+      ownerCode = "";
+      setStatus("Кодовое слово не подошло.");
+    }
+  } catch (e) {
+    ownerCode = "";
+    setStatus("Не получилось проверить код. Попробуйте ещё раз.");
+  }
+};
 </script>
